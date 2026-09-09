@@ -267,18 +267,21 @@ class PaperFetcher:
                 return carsi_paper
 
         # Step 5: Try direct publisher PDF URL construction
-        if doi and not paper.pdf_path:
+        if doi and not paper.pdf_path and self._non_carsi_institution_configured():
             pdf_paper = self._try_publisher_pdf(doi, url, paper)
             if _check("publisher_pdf", pdf_paper):
                 return pdf_paper
 
         # Step 6: Try browser-based PDF download
-        if doi and not paper.pdf_path:
+        if doi and not paper.pdf_path and self._non_carsi_institution_configured():
             browser_paper = self._try_browser_pdf_download(doi, url, paper)
             if _check("browser_pdf", browser_paper):
                 return browser_paper
 
         # Step 7: Fetch via institutional campus access
+        if not self._non_carsi_institution_configured():
+            return paper
+
         self._rate_limit()
         try:
             paper = self._fetch_via_webvpn(url, paper)
@@ -366,6 +369,18 @@ class PaperFetcher:
             or self.config.get("ezproxy_login_url")
             or self.config.get("network_proxy")
             or (self.config.get("carsi_enabled") and self.config.get("carsi_idp_name"))
+        )
+
+    def _non_carsi_institution_configured(self) -> bool:
+        """Whether a publisher/WebVPN fallback can run without CARSI."""
+        return bool(
+            self.config.get("instsci_school")
+            or self.config.get("instsci_base_url")
+            or self.config.get("vpnsci_school")
+            or self.config.get("vpnsci_base_url")
+            or self.config.get("ezproxy_login_url")
+            or self.config.get("network_proxy")
+            or self.config.get("is_campus_network")
         )
 
     def _try_open_access(self, doi: str, identifier: str = "") -> Paper | None:
@@ -664,7 +679,28 @@ class PaperFetcher:
         self._rate_limit()
         try:
             carsi = CARSIClient(self.config)
+
+            # A configured central portal owns the complete browser login and
+            # download attempt. Do not call fetch() first: that invokes the
+            # publisher-side WAYF and recreates the organization-search spinner
+            # that the portal route is meant to replace.
+            if str(self.config.get("carsi_portal_url", "") or "").strip():
+                output_dir = Path(self.config.get("output_dir", "."))
+                safe_doi = re.sub(r"[^\w\-.]", "_", doi)
+                output_path = output_dir / f"{safe_doi}.pdf"
+                browser_result = carsi.download_via_browser(doi, resolved_url, output_path)
+                result_path = browser_result.get("file", "") if browser_result else ""
+                if result_path:
+                    result = _copy_paper_metadata(paper, resolved_url)
+                    result.source = "carsi"
+                    result.pdf_path = str(result_path)
+                    self._extract_pdf_text(result, result.pdf_path)
+                    return result
+                return None
+
             resp = carsi.fetch(pdf_url)
+            if resp is None:
+                return None
             resp.raise_for_status()
             ct = resp.headers.get("content-type", "").lower()
             if "pdf" in ct and len(resp.content) > 10000:
@@ -679,11 +715,19 @@ class PaperFetcher:
     def _try_carsi_html(self, url: str, paper: Paper) -> Paper | None:
         from .sources.carsi import CARSIClient
 
+        # The portal browser attempt above already loaded the article and tried
+        # every PDF route. Falling through here would launch the old publisher
+        # organization finder a second time.
+        if str(self.config.get("carsi_portal_url", "") or "").strip():
+            return None
+
         logger.info("Trying CARSI HTML: %s", url)
         self._rate_limit()
         try:
             carsi = CARSIClient(self.config)
             resp = carsi.fetch(url)
+            if resp is None:
+                return None
             resp.raise_for_status()
             ct = resp.headers.get("content-type", "").lower()
             if "pdf" in ct:

@@ -53,6 +53,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "vpnsci_cookie_file": "",
     "carsi_enabled": False,
     "carsi_idp_name": "",
+    "carsi_idp_entity_id": "",
+    # Optional central CARSI discovery portal. When set, browser downloads enter
+    # the publisher through this portal instead of the publisher's own WAYF.
+    "carsi_portal_url": "",
+    "carsi_portal_timeout": 120,
+    "carsi_cookie_max_age_hours": 0,
     "ezproxy_enabled": False,
     "ezproxy_login_url": "",
     # 机构会话自愈：下载走机构渠道前自动校验 WebVPN/CARSI 会话，
@@ -157,6 +163,8 @@ _VALIDATION_RULES: dict[str, tuple[type, Any, Any]] = {
     "batch_workers": (int, 1, 50),
     "batch_stagger_seconds": (float, 0.0, 10.0),
     "min_pdf_size_bytes": (int, 100, 1000000),
+    "carsi_portal_timeout": (int, 10, 600),
+    "carsi_cookie_max_age_hours": (int, 0, 8760),
     "google_scholar_limit": (int, 1, 50),
 }
 

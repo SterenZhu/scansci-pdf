@@ -44,7 +44,7 @@
     "search_selector": "input#institution-search, input[name='searchTerm']",
     "result_selector": ".institution-list a, .wayf-results a",
     "success_url_pattern": "ieeexplore.ieee.org",
-    "pdf_pattern": "/stamp/stamp.jsp?arnumber={article_id}"
+    "pdf_pattern": "/stampPDF/getPDF.jsp?tp=&isnumber=&arnumber={article_id}"
   },
   "tandfonline": {
     "name": "Taylor & Francis",

@@ -388,10 +388,22 @@ def _build_institutional_sources(doi: str, config: dict[str, Any], *, use_vpnsci
 
     sources: list[tuple[Any, str]] = []
 
-    if _any_institutional_path(config):
+    # The bridge itself invokes CARSI. Do not schedule both the bridge and the
+    # standalone CARSI source when CARSI is the only configured institution
+    # route, otherwise one failed login opens the same browser flow twice.
+    bridge_configured = bool(
+        (config.get("vpnsci_enabled") and (config.get("vpnsci_school") or config.get("vpnsci_base_url")))
+        or (config.get("ezproxy_enabled") and config.get("ezproxy_login_url"))
+        or config.get("elsevier_api_key")
+    )
+    if bridge_configured:
         sources.append((_try_institutional_bridge, "InstSci"))
 
-    if config.get("carsi_enabled", False) and config.get("carsi_idp_name", "").strip():
+    if (
+        not bridge_configured
+        and config.get("carsi_enabled", False)
+        and config.get("carsi_idp_name", "").strip()
+    ):
         sources.append((try_carsi, "CARSI"))
 
     if use_vpnsci and config.get("vpnsci_enabled", False):
