@@ -6,8 +6,8 @@
     "name": "Rimagination",
     "url": "https://github.com/Rimagination"
   },
-  "homepage": "https://github.com/Rimagination/scansci-pdf",
-  "repository": "https://github.com/Rimagination/scansci-pdf",
+  "homepage": "https://github.com/SterenZhu/scansci-pdf/tree/feat/carsi-portal-patchright",
+  "repository": "https://github.com/SterenZhu/scansci-pdf.git",
   "license": "Apache-2.0",
   "keywords": [
     "academic papers",
@@ -30,7 +30,7 @@
       "Read",
       "Write"
     ],
-    "websiteURL": "https://github.com/Rimagination/scansci-pdf",
+    "websiteURL": "https://github.com/SterenZhu/scansci-pdf/tree/feat/carsi-portal-patchright",
     "defaultPrompt": [
       "Search for papers and return verified DOI records",
       "Organize my paper list and export citations",
